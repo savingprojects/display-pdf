@@ -1,0 +1,184 @@
+<script type="text/javascript" src="/../bower_components/diya-sdk/dist/diya-sdk.js"></script>
+<link rel="import" href="/../bower_components/polymer/polymer.html">
+<link rel="import" href="/../bower_components/pico-viewer/pico-viewer.html">
+<script type="text/javascript" src="../pdf.js/build/pdf.js"></script>
+
+<polymer-element name="display-pdf" attributes="source">
+    <template>
+        <style>
+            :host{
+
+            }
+
+            #content{
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            #prev{
+                background: #CFE0FC;
+            }
+
+            #next{
+                background: #CFE0FC;
+            }
+
+            #prev::shadow #ripple{
+                color: #0191C5;
+            }
+
+            #next::shadow #ripple{
+                color: #0191C5;
+            }
+
+            #myCanvas{
+                display: flex;
+                flex-direction: center;
+
+                border: 3px pink solid;
+            }
+
+            #page_num{
+                display: flex;
+                width: 50%;
+                flex-direction: raw;
+                justify-content: space-between;
+            }
+
+        </style>
+
+
+        <div id="content">
+            <div>
+                <paper-button id="prev" on-tap="{{prevPage}}">Prev</paper-button>
+                <paper-button id="next" on-tap="{{nextPage}}">Next</paper-button>
+            </div>
+
+
+            <div>
+              <canvas id="myCanvas" class="canvas" style="border:1px solid gray"></canvas>
+            </div>
+            <div id="page_num">
+                <template if={{PageNum}}!== 'undefined'>Page: {{pageNum}}</template>
+            </div>
+        </div>
+    </template>
+
+    <script src="../pdf.js/build/pdf.js"></script>
+    <script>
+    Polymer({
+        ready: function(){
+
+            console.log("start");
+            var that = this;
+
+            PDFJS.workerSrc = '../pdf.js/build/pdf.worker.js';
+
+            this. url = 'http://localhost:9001/pdf.js/www/';
+            this.canvas;
+            this.pdfDoc;
+            this.pageNum = 1;
+            this.pageRendering = false;
+            this.pageNumPending = null;
+            this.scale = 0.8;
+            this.canvas = this.$.myCanvas;
+            this.ctx = this.canvas.getContext('2d');
+
+        },
+
+        sourceChanged: function(){
+            console.log("chgt source Pdf:");
+            console.log(this.source);
+
+            var that = this;
+            if(this.source){
+                that.listenViewers();
+            }
+        },
+
+
+        renderPage: function(num) {
+            console.log(this.$.myCanvas);
+
+            var that = this;
+            this.pageRendering = true;
+
+            this.pdfDoc.getPage(num).then(function(page) {
+                var viewport = page.getViewport(that.scale);
+                that.canvas.height = viewport.height;
+                that.canvas.width = viewport.width;
+
+                // Render PDF page into canvas context
+                var renderContext = {
+                    canvasContext: that.ctx,
+                    viewport: viewport
+                };
+                var renderTask = page.render(renderContext);
+
+                // Wait for rendering to finish
+                renderTask.promise.then(function () {
+                    that.pageRendering = false;
+                    if (that.pageNumPending !== null) {
+                        // New page rendering is pending
+                        that.renderPage(that.pageNumPending);
+                        that.pageNumPending = null;
+                    }
+              });
+            });
+        },
+
+
+        queueRenderPage: function(num){
+            var that = this;
+            console.log("queueRender");
+            if (that.pageRendering) {
+              that.pageNumPending = num;
+            } else {
+              that.renderPage(num);
+            }
+        },
+
+
+        prevPage: function(evt){
+            var that = this;
+            if (that.pageNum <= 1) {
+              return;
+            }
+            that.pageNum--;
+            that.queueRenderPage(that.pageNum);
+        },
+
+
+        nextPage: function(){
+            var that = this;
+            if (that.pageNum >= this.pdfDoc.numPages) {
+              return;
+            }
+            that.pageNum++;
+            that.queueRenderPage(that.pageNum);
+        },
+
+        listenViewers: function(){
+            var that = this;
+            console.log("source");
+            console.log(this.source);
+
+
+                this.pdfDoc = PDFJS.getDocument(this.source).then(function(pdfdoc) {
+                    that.pdfDoc = pdfdoc;
+                    that.queueRenderPage(1);
+                })
+
+        },
+
+		setPdf: function(file){
+			this.httpServer = 'http://localhost:9001/pdf.js/www/';
+			this.source = this.httpServer + file;
+		},
+
+
+
+
+          });
+    </script>
+</polymer-element>
