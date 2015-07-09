@@ -38,15 +38,14 @@
             }
 
             #myCanvas{
-                display: flex;
-                /*flex-direction: column;*/
+                /*display: flex;*/
                 justify-content: center;
                 align-items: center;
                 border: 3px gray solid;
-                max-width: 100%;
-                height: 80%;
-                /*zoom: 250%;*/
-                overflow: visible;
+                /*max-width: 100%;
+                height: 80%;*/
+                /*overflow: scroll;*/
+                /*visibility: visible;*/
             }
 
             #page_num{
@@ -56,16 +55,19 @@
                 justify-content: space-between;
                }
 
-            /*.content{
-                display: flex;
-                justify-content: center;
-                text-align: center;
-                max-width: 100%;
-                max-height: 100%;
-            }*/
             #zoom{
                 color: white;
-                /*zoom: 150%;*/
+            }
+
+            #pdfBloc{
+                /*display: flex;*/
+                text-align: center;
+                align-items: center;
+                overflow-y: auto;
+                overflow-x: auto;
+                height: 80%;
+                width: 70%;
+                background: #1A2127;
             }
 
         </style>
@@ -78,7 +80,7 @@
             </div>
 
 
-            <div style="border:1px solid gray">
+            <div id="pdfBloc" style="border:1px solid black">
               <canvas id="myCanvas" class="canvas"></canvas>
             </div>
             <div id="page_num">
@@ -102,15 +104,17 @@
             var that = this;
 
             PDFJS.workerSrc = '../pdf.js/build/pdf.worker.js';
-
+            PDFJS.useOnlyCssZoom = (PDFJS.useOnlyCssZoom === undefined ?
+                                    false : PDFJS.useOnlyCssZoom);
             // this.iterator = 0;
-            this. url = 'http://localhost:9001/pdf.js/www/';
+            // this.url = 'http://localhost:9001/pdf.js/www/';
+            this. url = '/pdf.js/www/';
             this.canvas;
             this.pdfDoc;
             this.pageNum = 1;
             this.pageRendering = false;
             this.pageNumPending = null;
-            this.scale = 0.8;
+            this.scale = 1.0;
             this.canvas = this.$.myCanvas;
             this.ctx = this.canvas.getContext('2d');
 
@@ -126,10 +130,8 @@
             }
         },
 
-
         renderPage: function(num) {
-            console.log(this.$.myCanvas);
-
+            // console.log(this.$.myCanvas);
             var that = this;
             this.pageRendering = true;
 
@@ -157,17 +159,18 @@
             });
         },
 
-
         queueRenderPage: function(num){
-            var that = this;
             console.log("queueRender");
+            var that = this;
             if (that.pageRendering) {
               that.pageNumPending = num;
             } else {
               that.renderPage(num);
             }
-        },
+            console.log(this.$.myCanvas);
+            console.log("___________________");
 
+        },
 
         prevPage: function(evt){
             var that = this;
@@ -177,7 +180,6 @@
             that.pageNum--;
             that.queueRenderPage(that.pageNum);
         },
-
 
         nextPage: function(){
             var that = this;
@@ -198,7 +200,6 @@
                     that.pdfDoc = pdfdoc;
                     that.queueRenderPage(1);
                 })
-
         },
 
 		setPdf: function(file){
@@ -207,78 +208,43 @@
 		},
 
         zoomUp: function(){
-            var that = this;
-            PDFJS.useOnlyCssZoom = (PDFJS.useOnlyCssZoom === undefined ?
-                                    false : PDFJS.useOnlyCssZoom);
+            console.log("___________________");
+            console.log("zoom+");
 
-            // var pdfDocument = that.canvas;
-            // this.pageWidth = that.$.content.offsetWidth;
-            // this.pageHeight = that.$.content.offsetHeight;
-            // var docWidth = 0.3 * pageWidth;
-            // pdfDocument.style.width = 0.2 * docWidth + "px";
-            // pdfDocument.style.height = 0.5 * docWidth * 1.2 + "px";
-            //
+            var that = this;
 
             this.pageWidth = that.ctx.canvas.width;
             this.pageHeight = that.ctx.canvas.height;
 
-            if (this.pageWidth > this.pageHeight){
+            // that.canvas.style.width = (this.pageWidth + 0.2*this.pageWidth) + "px";
+            // that.canvas.style.height = (this.pageHeight + 0.2*this.pageHeight) + "px";
 
-                that.canvas.style.width = (this.pageWidth + 0.2*this.pageWidth) + "px";
-                that.canvas.style.height = (this.pageHeight + 0.2*this.pageHeight) + "px";
-
-
-            }
-            else{
-                // if (that.iterator < 3){
-                    that.canvas.style.width = (this.pageWidth + 0.2*this.pageWidth) + "px";
-                    that.canvas.style.height = (this.pageHeight + 0.2*this.pageHeight) + "px";
-                    // that.iterator ++;
-                    // console.log(iterator);
-                // }
-            }
             //resoltion:
             this.scale += 0.1;
             that.queueRenderPage(that.pageNum);
 
-            console.log("width : " + that.canvas.style.width);
-            console.log("height : " + that.canvas.style.height);
+            // console.log("width : " + that.canvas.style.width);
+            // console.log("height : " + that.canvas.style.height);
 
         },
 
         zoomDown: function(){
+            console.log("___________________");
+            console.log("zoom-");
 
             var that = this;
-            PDFJS.useOnlyCssZoom = (PDFJS.useOnlyCssZoom === undefined ?
-                                    false : PDFJS.useOnlyCssZoom);
-
 
             // this.ctx.scale(2,2);
             this.pageWidth = that.ctx.canvas.width;
             this.pageHeight = that.ctx.canvas.height;
 
-            if (this.pageWidth > this.pageHeight){
-
-                that.canvas.style.width = (this.pageWidth - 0.02*this.pageWidth) + "px";
-                that.canvas.style.height = (this.pageHeight - 0.02*this.pageHeight) + "px";
-            }
-
-            else{
-                that.canvas.style.width = (this.pageWidth - 0.02*this.pageWidth) + "px";
-                that.canvas.style.height = (this.pageHeight - 0.02*this.pageHeight) + "px";
-            }
-
             //resolution:
             this.scale -= 0.1;
             that.queueRenderPage(that.pageNum);
-            console.log("width : " + that.canvas.style.width);
-            console.log("height : " + that.canvas.style.height);
-            // that.iterator --;
-            // console.log(iterator);
+
+            // console.log("width : " + that.canvas.style.width);
+            // console.log("height : " + that.canvas.style.height);
         }
-
-
-
 
           });
     </script>
